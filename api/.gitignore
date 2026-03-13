@@ -28,3 +28,6 @@
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
 ###< lexik/jwt-authentication-bundle ###
+.vscode/
+/compose.override.yaml
+/config/packages/lexik_jwt_authentication.yaml
