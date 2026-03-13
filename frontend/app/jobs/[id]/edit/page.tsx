@@ -8,7 +8,7 @@ export default function EditJobPage() {
     const params = useParams();
     const id = params.id;
 
-    const [companies, setCompanies] = useState<any[]>([]);
+    const [companies, setCompanies] = useState<{ id: number; name: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -143,7 +143,7 @@ export default function EditJobPage() {
                             required
                         >
                             <option value="">Select a company</option>
-                            {companies.map((company: any) => (
+                            {companies.map((company) => (
                                 <option key={company.id} value={company.id}>{company.name}</option>
                             ))}
                         </select>

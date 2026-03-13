@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import FilterBar from './filter';
 import JobCard from '../../components/JobCard';
 
@@ -21,7 +20,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Job Listings</h1>
             <FilterBar />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {jobs.map((job: any) => (
+                {jobs.map((job: { id: number; title: string; description: string; salary: number | null; location: string; status: string; company: { id: number; name: string } }) => (
                   <JobCard key={job.id} job={job} />
                 ))}
             </div>

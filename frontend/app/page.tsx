@@ -52,7 +52,7 @@ export default async function HomePage() {
             <section className="py-20 px-8 max-w-5xl mx-auto">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Latest Opportunities</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {latestJobs.map((job: any) => (
+                    {latestJobs.map((job: { id: number; title: string; description: string; salary: number | null; location: string; status: string; company: { id: number; name: string } }) => (
                         <JobCard key={job.id} job={job} />
                     ))}
                 </div>
