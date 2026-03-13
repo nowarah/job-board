@@ -1,0 +1,112 @@
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/**'
+
+jobs:
+  lint:
+    name: PHP Lint & Static Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_pgsql, intl, mbstring
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: api/vendor
+          key: composer-${{ hashFiles('api/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Symfony lint container
+        run: php bin/console lint:container
+
+      - name: Symfony lint YAML
+        run: php bin/console lint:yaml config --parse-tags
+
+      - name: Validate Doctrine schema
+        run: php bin/console doctrine:schema:validate --skip-sync
+        continue-on-error: true
+
+  test:
+    name: PHPUnit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: job_board_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:password@127.0.0.1:5432/job_board_test?serverVersion=16&charset=utf8
+      APP_ENV: test
+      APP_SECRET: test-secret-for-ci
+      JWT_SECRET_KEY: '%kernel.project_dir%/config/jwt/private.pem'
+      JWT_PUBLIC_KEY: '%kernel.project_dir%/config/jwt/public.pem'
+      JWT_PASSPHRASE: test-passphrase
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_pgsql, intl, mbstring
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: api/vendor
+          key: composer-${{ hashFiles('api/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate JWT keys
+        run: |
+          mkdir -p config/jwt
+          openssl genpkey -algorithm RSA -out config/jwt/private.pem -pkeyopt rsa_keygen_bits:4096 -pass pass:test-passphrase
+          openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem -passin pass:test-passphrase
+
+      - name: Run migrations
+        run: php bin/console doctrine:migrations:migrate --no-interaction
+
+      - name: Run PHPUnit
+        run: php bin/phpunit
